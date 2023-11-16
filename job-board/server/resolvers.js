@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql';
 import { getCompany } from './db/companies.js';
-import { createJob, updateJob, deleteJob, getJob, getJobs, getJobsByCompany } from './db/jobs.js';
+import { countJobs, createJob, updateJob, deleteJob, getJob, getJobs, getJobsByCompany } from './db/jobs.js';
 
 export const resolvers = {
     Query: {
@@ -19,7 +19,11 @@ export const resolvers = {
         }
         return job;
       },
-       jobs: () => getJobs(),
+      jobs: async (_root, { limit, offset }) => {
+        const items = await getJobs(limit, offset);
+        const totalCount = await countJobs();
+        return { items, totalCount };
+      },
   },
 
   Mutation: {
@@ -59,7 +63,9 @@ export const resolvers = {
   },
   
   Job: {
-    company: (job) => getCompany(job.companyId),
+    company: (job, _args, { companyLoader }) => {
+      return companyLoader.load(job.companyId);
+    },
     date: (job) => toIsoDate(job.createdAt),
   },
   
